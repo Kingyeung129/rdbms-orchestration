@@ -1,0 +1,47 @@
+FROM rust:1.86 AS builder
+
+WORKDIR /src
+COPY . /src
+
+RUN cargo install --path .
+
+FROM debian:bookworm-slim
+
+ARG USER
+ARG PASS
+ARG SOURCE_DIR
+ARG TEMPLATE_DIR
+
+WORKDIR /usr/local/bin
+COPY --from=builder /usr/local/cargo/bin/rsync_csv /usr/local/bin/rsync_csv
+
+# Install dependencies and clean up
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    sudo rsync openssh-server sshpass && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /var/run/sshd
+
+# Create an administrative user with uid of 1001
+RUN useradd -m -u 1001 -d /home/${USER} -s /bin/bash ${USER} && \
+    echo "${USER}:${PASS}" | chpasswd && \
+    usermod -aG sudo ${USER} && \
+    printf "\nPasswordAuthentication yes\nPermitRootLogin no\n" >> /etc/ssh/sshd_config
+
+# Create source and template directories
+RUN mkdir -p ${SOURCE_DIR} ${TEMPLATE_DIR} && \
+    chown -R ${USER}:${USER} ${SOURCE_DIR} ${TEMPLATE_DIR}
+
+# Copy templates and bash script
+COPY --chown=${USER}:${USER} ./test/templates/* ${TEMPLATE_DIR}/
+COPY --chown=${USER}:${USER} ./test/bash/copy_ssh_key.sh /
+RUN chmod +x /copy_ssh_key.sh
+
+# Create ssh authorized_keys file for administrative user
+RUN mkdir -p /home/${USER}/.ssh && \
+    touch /home/${USER}/.ssh/authorized_keys && \
+    chmod 600 /home/${USER}/.ssh/authorized_keys && \
+    chown -R ${USER}:${USER} /home/${USER}/.ssh
+
+EXPOSE 22
+CMD ["/usr/bin/env", "bash", "-c", "/usr/sbin/sshd -D & /copy_ssh_key.sh && rsync_csv"]

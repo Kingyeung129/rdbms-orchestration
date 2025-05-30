@@ -1,0 +1,60 @@
+# Rust builder
+FROM rust:1.86 AS builder
+WORKDIR /src
+COPY . /src
+RUN cargo install --path .
+
+# Main image
+FROM debian:bookworm-slim
+
+# build arguments
+ARG RUST_BIN_NAME
+ARG USER
+ARG PASS
+ARG LAKEHOUSE_DIR
+ARG RSYNC_USER=rsyncuser
+
+# Install system packages and dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        sudo rsync openssh-server sshpass && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir /var/run/sshd
+
+# Create an administrative user with uid of 1001 and rsyncuser with nologin
+RUN useradd -m -u 1001 -d /home/${USER} -s /bin/bash ${USER} && \
+    echo "${USER}:${PASS}" | chpasswd && \
+    printf "\nPasswordAuthentication yes\nPermitRootLogin no\n" >> /etc/ssh/sshd_config && \
+    usermod -aG sudo ${USER} && \
+    useradd -m -u 1002 -d /home/${RSYNC_USER} -s /bin/bash ${RSYNC_USER} && \
+    echo "${RSYNC_USER}:password" | chpasswd
+
+# Copy compiled rust binary from builder stage
+COPY --from=builder /usr/local/cargo/bin/${RUST_BIN_NAME} /usr/local/bin/${RUST_BIN_NAME}
+
+# Permissions for /lakehouse
+RUN mkdir -p "${LAKEHOUSE_DIR}/csv_templates" \
+             "${LAKEHOUSE_DIR}/dml_scripts" \
+             "${LAKEHOUSE_DIR}/rsync" && \
+    chown -R ${USER}:${USER} ${LAKEHOUSE_DIR} && \
+    chown -R ${USER}:${RSYNC_USER} ${LAKEHOUSE_DIR}/rsync && \
+    chmod 751 ${LAKEHOUSE_DIR} && \
+    chmod 771 ${LAKEHOUSE_DIR}/rsync
+
+# Permisisons for /lakehouse/bash/copy_ssh_key.sh
+COPY ./test/lakehouse/bash/copy_ssh_key.sh /copy_ssh_key.sh
+RUN chmod +x /copy_ssh_key.sh && \
+    chown ${USER}:${USER} /copy_ssh_key.sh
+
+# Create authorized_keys for SSH
+RUN mkdir -p /home/${USER}/.ssh && \
+    touch /home/${USER}/.ssh/authorized_keys && \
+    chmod 600 /home/${USER}/.ssh/authorized_keys &&\
+    chown -R ${USER}:${USER} /home/${USER}/.ssh && \
+    mkdir -p /home/${RSYNC_USER}/.ssh && \
+    touch /home/${RSYNC_USER}/.ssh/authorized_keys && \
+    chmod 600 /home/${RSYNC_USER}/.ssh/authorized_keys && \
+    chown -R ${RSYNC_USER}:${RSYNC_USER} /home/${RSYNC_USER}/.ssh
+
+EXPOSE 22
+CMD ["/usr/bin/env", "bash", "-c", "/usr/sbin/sshd -D & /copy_ssh_key.sh & /usr/local/bin/$RUST_BIN_NAME"]
