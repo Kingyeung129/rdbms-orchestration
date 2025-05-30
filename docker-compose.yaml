@@ -1,0 +1,35 @@
+services:
+  async-innodb-server:
+    build:
+      context: ./async-innodb-reload/docker
+      dockerfile: Dockerfile.server
+    container_name: async_innodb_server
+    volumes:
+      - ./lakehouse/s3:/lakehouse
+    networks:
+      - rdbms-network
+    ports:
+      - "2222:22"
+      - "50000:50000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  rsync-csv:
+    build:
+      context: ./rsync-csv/docker
+      dockerfile: Dockerfile.rsync-csv
+    container_name: rsync_csv
+    volumes:
+      - ./lakehouse/user:/lakehouse
+    networks:
+      - rdbms-network
+    ports:
+      - "4444:22"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - async-innodb-server
+
+networks:
+  rdbms-network:
+    driver: bridge
