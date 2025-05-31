@@ -25,14 +25,16 @@ services:
       context: ./rsync-csv
       dockerfile: ../Dockerfile.rdbms-rsync-csv
       args:
-        - USER=${REMOTE_SSH_USERNAME:-rsyncuser}
+        - USER=${REMOTE_SSH_USERNAME:-admin}
         - PASS=${REMOTE_SSH_PASSWORD:-password}
         - SOURCE_DIR=${SOURCE_DIR:-/lakehouse}
         - TEMPLATE_DIR=${TEMPLATE_DIR:-/templates}
+        - SERVER_PASSWORD=${SERVER_PASSWORD:-password}
     container_name: rdbms-rsync-csv
     env_file: .env
     volumes:
-      - ./lakehouse/user:/lakehouse
+      - ./lakehouse/user/csv_templates:/lakehouse_templates
+      - ./lakehouse/user/data_dictionaries:/lakehouse_data_dictionaries
     networks:
       - rdbms-network
     ports:

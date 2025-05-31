@@ -27,7 +27,7 @@ RUN useradd -m -u 1001 -d /home/${USER} -s /bin/bash ${USER} && \
     printf "\nPasswordAuthentication yes\nPermitRootLogin no\n" >> /etc/ssh/sshd_config && \
     usermod -aG sudo ${USER} && \
     useradd -m -u 1002 -d /home/${RSYNC_USER} -s /bin/bash ${RSYNC_USER} && \
-    echo "${RSYNC_USER}:password" | chpasswd
+    echo "${RSYNC_USER}:${PASS}" | chpasswd
 
 # Copy compiled rust binary from builder stage
 COPY --from=builder /usr/local/cargo/bin/${RUST_BIN_NAME} /usr/local/bin/${RUST_BIN_NAME}
