@@ -13,9 +13,6 @@ ARG SOURCE_DIR
 ARG TEMPLATE_DIR
 ARG SERVER_PASSWORD
 
-WORKDIR /usr/local/bin
-COPY --from=builder /usr/local/cargo/bin/rsync_csv /usr/local/bin/rsync_csv
-
 # Install dependencies and clean up
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -27,7 +24,10 @@ RUN apt-get update && \
 RUN useradd -m -u 1001 -d /home/${USER} -s /bin/bash ${USER} && \
     echo "${USER}:${PASS}" | chpasswd && \
     usermod -aG sudo ${USER} && \
+    echo "${USER} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/${USER} && \
     printf "\nPasswordAuthentication yes\nPermitRootLogin no\n" >> /etc/ssh/sshd_config
+
+COPY --chown=${USER}:${USER} --from=builder /usr/local/cargo/bin/rsync_csv /usr/local/bin/rsync_csv
 
 # Create source and template directories
 RUN mkdir -p ${SOURCE_DIR} ${TEMPLATE_DIR} && \
@@ -52,4 +52,4 @@ RUN groupadd sftpchroot && \
     groupadd rsyncusers
 
 EXPOSE 22
-CMD ["bash", "-c", "/usr/sbin/sshd -D & /copy_ssh_key.sh & rsync_csv"]
+CMD ["bash", "-c", "sudo /usr/sbin/sshd -D & /copy_ssh_key.sh & rsync_csv"]

@@ -10,6 +10,7 @@ services:
         - LAKEHOUSE_DIR=${LAKEHOUSE_DIR:-/lakehouse}
     container_name: rdbms-async-innodb-reload-server
     env_file: .env
+    user: "${RDBMS_UID:-1001}:${RDBMS_GID:-1001}"
     volumes:
       - ./lakehouse/s3:/lakehouse
     networks:
@@ -32,6 +33,7 @@ services:
         - SERVER_PASSWORD=${SERVER_PASSWORD:-password}
     container_name: rdbms-rsync-csv
     env_file: .env
+    user: "${RDBMS_UID:-1001}:${RDBMS_GID:-1001}"
     volumes:
       - ./lakehouse/user/csv_templates:/lakehouse_templates
       - ./lakehouse/user/data_dictionaries:/lakehouse_data_dictionaries

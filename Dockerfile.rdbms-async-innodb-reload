@@ -24,13 +24,14 @@ RUN apt-get update && \
 # Create an administrative user with uid of 1001 and rsyncuser with nologin
 RUN useradd -m -u 1001 -d /home/${USER} -s /bin/bash ${USER} && \
     echo "${USER}:${PASS}" | chpasswd && \
-    printf "\nPasswordAuthentication yes\nPermitRootLogin no\n" >> /etc/ssh/sshd_config && \
     usermod -aG sudo ${USER} && \
+    echo "${USER} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/${USER} && \
     useradd -m -u 1002 -d /home/${RSYNC_USER} -s /bin/bash ${RSYNC_USER} && \
-    echo "${RSYNC_USER}:${PASS}" | chpasswd
+    echo "${RSYNC_USER}:${PASS}" | chpasswd && \
+    printf "\nPasswordAuthentication yes\nPermitRootLogin no\n" >> /etc/ssh/sshd_config
 
 # Copy compiled rust binary from builder stage
-COPY --from=builder /usr/local/cargo/bin/${RUST_BIN_NAME} /usr/local/bin/${RUST_BIN_NAME}
+COPY --chown=${USER}:${USER} --from=builder /usr/local/cargo/bin/${RUST_BIN_NAME} /usr/local/bin/${RUST_BIN_NAME}
 
 # Permissions for /lakehouse
 RUN mkdir -p "${LAKEHOUSE_DIR}/csv_templates" \
@@ -57,4 +58,4 @@ RUN mkdir -p /home/${USER}/.ssh && \
     chown -R ${RSYNC_USER}:${RSYNC_USER} /home/${RSYNC_USER}/.ssh
 
 EXPOSE 22
-CMD ["/usr/bin/env", "bash", "-c", "/usr/sbin/sshd -D & /copy_ssh_key.sh & /usr/local/bin/$RUST_BIN_NAME"]
+CMD ["bash", "-c", "sudo /usr/sbin/sshd -D & /copy_ssh_key.sh & /usr/local/bin/$RUST_BIN_NAME"]
