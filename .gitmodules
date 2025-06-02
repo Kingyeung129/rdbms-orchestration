@@ -1,0 +1,6 @@
+[submodule "rsync-csv"]
+	path = rsync-csv
+	url = git@github.com:SSI-Sport-Tech/rsync-csv.git
+[submodule "async-innodb-reload"]
+	path = async-innodb-reload
+	url = git@github.com:SSI-Sport-Tech/async-innodb-reload.git
