@@ -18,15 +18,22 @@ ARG RDBMS_GID
 # Install dependencies and clean up
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    sudo rsync openssh-server sshpass systemd && \
+    sudo rsync openssh-server sshpass supervisor acl vim && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /var/run/sshd
 
+# Create sftpchroot and rsyncusers groups
+RUN groupadd sftpchroot && \
+    groupadd rsyncusers && \
+    newgrp sftpchroot && \
+    newgrp rsyncusers
+    
 # Create an administrative user with uid of 1001
 RUN useradd -m -u ${RDBMS_UID} -d /home/${USER} -s /bin/bash ${USER} && \
     echo "${USER}:${PASS}" | chpasswd && \
     usermod -aG sudo ${USER} && \
     echo "${USER} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/${USER} && \
+    usermod -aG rsyncusers ${USER} && \
     printf "\nPasswordAuthentication yes\nPermitRootLogin no\n" >> /etc/ssh/sshd_config
 
 COPY --chown=${USER}:${USER} --from=builder /usr/local/cargo/bin/rsync_csv /usr/local/bin/rsync_csv
@@ -49,9 +56,5 @@ RUN mkdir -p /home/${USER}/.ssh && \
     chmod 600 /home/${USER}/.ssh/authorized_keys && \
     chown -R ${USER}:${USER} /home/${USER}/.ssh
 
-# Create sftpchroot and rsyncusers groups
-RUN groupadd sftpchroot && \
-    groupadd rsyncusers
-
 EXPOSE 22
-CMD ["bash", "-c", "sudo /usr/sbin/sshd -D & /copy_ssh_key.sh & rsync_csv"]
+CMD ["bash", "-c", "sudo /usr/sbin/sshd -D & /copy_ssh_key.sh && sudo -E bash /entrypoint.sh"]

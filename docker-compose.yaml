@@ -43,6 +43,9 @@ services:
       - ./lakehouse/user/csv_templates:/lakehouse_templates
       - ./lakehouse/user/data_dictionaries:/lakehouse_data_dictionaries
       - ./scripts/user:/home/${SERVER_USERNAME:-admin}/tools
+      - ./supervisor/rsync-csv.supervisord.conf:/etc/supervisor/supervisord.conf.tpl
+      - ./supervisor/entrypoint.sh:/entrypoint.sh
+      - persistent-home:/home
     networks:
       - rdbms-network
     ports:
@@ -51,6 +54,9 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - rdbms-async-innodb-reload-server
+
+volumes:
+  persistent-home:
 
 networks:
   rdbms-network:
