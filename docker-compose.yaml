@@ -8,11 +8,14 @@ services:
         - USER=${SERVER_USERNAME:-admin}
         - PASS=${SERVER_PASSWORD:-password}
         - LAKEHOUSE_DIR=${LAKEHOUSE_DIR:-/lakehouse}
+        - RDBMS_UID=${RDBMS_UID:-1001}
+        - RDBMS_GID=${RDBMS_GID:-1001}
     container_name: rdbms-async-innodb-reload-server
     env_file: .env
     user: "${RDBMS_UID:-1001}:${RDBMS_GID:-1001}"
     volumes:
       - ./lakehouse/s3:/lakehouse
+      - ./scripts/svr:/home/${SERVER_USERNAME:-admin}/etl
     networks:
       - rdbms-network
     ports:
@@ -31,12 +34,15 @@ services:
         - SOURCE_DIR=${SOURCE_DIR:-/lakehouse}
         - TEMPLATE_DIR=${TEMPLATE_DIR:-/templates}
         - SERVER_PASSWORD=${SERVER_PASSWORD:-password}
+        - RDBMS_UID=${RDBMS_UID:-1001}
+        - RDBMS_GID=${RDBMS_GID:-1001}
     container_name: rdbms-rsync-csv
     env_file: .env
     user: "${RDBMS_UID:-1001}:${RDBMS_GID:-1001}"
     volumes:
       - ./lakehouse/user/csv_templates:/lakehouse_templates
       - ./lakehouse/user/data_dictionaries:/lakehouse_data_dictionaries
+      - ./scripts/user:/home/${SERVER_USERNAME:-admin}/tools
     networks:
       - rdbms-network
     ports:

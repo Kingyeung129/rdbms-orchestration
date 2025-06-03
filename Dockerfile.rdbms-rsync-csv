@@ -12,16 +12,18 @@ ARG PASS
 ARG SOURCE_DIR
 ARG TEMPLATE_DIR
 ARG SERVER_PASSWORD
+ARG RDBMS_UID
+ARG RDBMS_GID
 
 # Install dependencies and clean up
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    sudo rsync openssh-server sshpass && \
+    sudo rsync openssh-server sshpass systemd && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /var/run/sshd
 
 # Create an administrative user with uid of 1001
-RUN useradd -m -u 1001 -d /home/${USER} -s /bin/bash ${USER} && \
+RUN useradd -m -u ${RDBMS_UID} -d /home/${USER} -s /bin/bash ${USER} && \
     echo "${USER}:${PASS}" | chpasswd && \
     usermod -aG sudo ${USER} && \
     echo "${USER} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/${USER} && \

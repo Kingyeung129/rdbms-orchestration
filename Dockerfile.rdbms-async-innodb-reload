@@ -13,6 +13,8 @@ ARG USER
 ARG PASS
 ARG LAKEHOUSE_DIR
 ARG RSYNC_USER=rsyncuser
+ARG RDBMS_UID
+ARG RDBMS_GID
 
 # Install system packages and dependencies
 RUN apt-get update && \
@@ -22,11 +24,11 @@ RUN apt-get update && \
     mkdir /var/run/sshd
 
 # Create an administrative user with uid of 1001 and rsyncuser with nologin
-RUN useradd -m -u 1001 -d /home/${USER} -s /bin/bash ${USER} && \
+RUN useradd -m -u ${RDBMS_UID} -d /home/${USER} -s /bin/bash ${USER} && \
     echo "${USER}:${PASS}" | chpasswd && \
     usermod -aG sudo ${USER} && \
     echo "${USER} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/${USER} && \
-    useradd -m -u 1002 -d /home/${RSYNC_USER} -s /bin/bash ${RSYNC_USER} && \
+    useradd -m -u 10000 -d /home/${RSYNC_USER} -s /bin/bash ${RSYNC_USER} && \
     echo "${RSYNC_USER}:${PASS}" | chpasswd && \
     printf "\nPasswordAuthentication yes\nPermitRootLogin no\n" >> /etc/ssh/sshd_config
 
@@ -41,6 +43,11 @@ RUN mkdir -p "${LAKEHOUSE_DIR}/csv_templates" \
     chown -R ${USER}:${RSYNC_USER} ${LAKEHOUSE_DIR}/rsync && \
     chmod 751 ${LAKEHOUSE_DIR} && \
     chmod 771 ${LAKEHOUSE_DIR}/rsync
+
+# Permissions for etl tools
+RUN mkdir -p /lakehouse/etl && \
+    chown -R ${USER}:${USER} /lakehouse/etl && \
+    chmod 755 /lakehouse/etl
 
 # Permisisons for /lakehouse/bash/copy_ssh_key.sh
 COPY ./test/lakehouse/bash/copy_ssh_key.sh /copy_ssh_key.sh
