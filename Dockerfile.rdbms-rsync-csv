@@ -18,7 +18,7 @@ ARG RDBMS_GID
 # Install dependencies and clean up
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    sudo rsync openssh-server sshpass supervisor acl vim && \
+    sudo rsync openssh-server sshpass supervisor acl vim cron && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /var/run/sshd
 
@@ -55,6 +55,11 @@ RUN mkdir -p /home/${USER}/.ssh && \
     touch /home/${USER}/.ssh/authorized_keys && \
     chmod 600 /home/${USER}/.ssh/authorized_keys && \
     chown -R ${USER}:${USER} /home/${USER}/.ssh
+
+# Create cron job for syncing templates and data dictionaries
+RUN echo "*/1 * * * * /usr/local/bin/sync_templates_and_dictionaries.sh >> /var/log/sync_templates_and_dictionaries.log 2>&1" > /etc/cron.d/sync-templates-and-dictionaries \
+    && chmod 0644 /etc/cron.d/sync-templates-and-dictionaries \
+    && crontab /etc/cron.d/sync-templates-and-dictionaries
 
 EXPOSE 22
 CMD ["bash", "-c", "sudo /usr/sbin/sshd -D & /copy_ssh_key.sh && sudo -E bash /entrypoint.sh"]

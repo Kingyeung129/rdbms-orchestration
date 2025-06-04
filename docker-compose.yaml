@@ -43,6 +43,7 @@ services:
       - ./lakehouse/user/csv_templates:/lakehouse_templates
       - ./lakehouse/user/data_dictionaries:/lakehouse_data_dictionaries
       - ./scripts/user:/home/${SERVER_USERNAME:-admin}/tools
+      - ./scripts/user/sync_templates_and_dictionaries.sh:/usr/local/bin/sync_templates_and_dictionaries.sh
       - ./supervisor/rsync-csv.supervisord.conf:/etc/supervisor/supervisord.conf.tpl
       - ./supervisor/entrypoint.sh:/entrypoint.sh
       - persistent-home:/home

@@ -3,6 +3,7 @@
 TEMPLATE_CONF="/etc/supervisor/supervisord.conf.tpl"
 SUPERVISOR_CONF="/etc/supervisor/supervisord.conf"
 
+# Generate supervisord.conf with environment variables
 echo "[INFO] Generating supervisord.conf with environment..."
 
 # Escape % for supervisor config
@@ -25,4 +26,11 @@ awk -v envs="$ENV_VARS" '
     }
 ' "$TEMPLATE_CONF" > "$SUPERVISOR_CONF"
 
+# Start cron service
+echo "[INFO] Starting cron service for sync templates and dictionaries..."
+sudo chmod +x /usr/local/bin/sync_templates_and_dictionaries.sh
+sudo service cron start
+
+# Start supervisord
+echo "[INFO] Starting supervisord with configuration: $SUPERVISOR_CONF"
 exec /usr/bin/supervisord -c "$SUPERVISOR_CONF"
