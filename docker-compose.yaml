@@ -7,7 +7,8 @@ services:
         - RUST_BIN_NAME=${RUST_BIN_NAME}
         - USER=${SERVER_USERNAME:-admin}
         - PASS=${SERVER_PASSWORD:-password}
-        - LAKEHOUSE_DIR=${LAKEHOUSE_DIR:-/lakehouse}
+        - RSYNC_USER=rsyncuser
+        - LAKEHOUSE_DIR=/lakehouse
         - RDBMS_UID=${RDBMS_UID:-1001}
         - RDBMS_GID=${RDBMS_GID:-1001}
     container_name: rdbms-async-innodb-reload-server
@@ -16,6 +17,8 @@ services:
     volumes:
       - ./lakehouse/s3:/lakehouse
       - ./scripts/svr:/home/${SERVER_USERNAME:-admin}/etl
+      - ./entrypoint.d/async-innodb-reload.entrypoint.sh:/entrypoint.sh
+      - lakehouse-rsync:/lakehouse/rsync
     networks:
       - rdbms-network
     ports:
@@ -45,7 +48,7 @@ services:
       - ./scripts/user:/home/${SERVER_USERNAME:-admin}/tools
       - ./scripts/user/sync_templates_and_dictionaries.sh:/usr/local/bin/sync_templates_and_dictionaries.sh
       - ./supervisor/rsync-csv.supervisord.conf:/etc/supervisor/supervisord.conf.tpl
-      - ./supervisor/entrypoint.sh:/entrypoint.sh
+      - ./entrypoint.d/rsync-csv.entrypoint.sh:/entrypoint.sh
       - persistent-home:/home
     networks:
       - rdbms-network
@@ -58,6 +61,7 @@ services:
 
 volumes:
   persistent-home:
+  lakehouse-rsync:
 
 networks:
   rdbms-network:

@@ -14,7 +14,6 @@ ARG PASS
 ARG LAKEHOUSE_DIR
 ARG RSYNC_USER=rsyncuser
 ARG RDBMS_UID
-ARG RDBMS_GID
 
 # Install system packages and dependencies
 RUN apt-get update && \
@@ -28,7 +27,9 @@ RUN useradd -m -u ${RDBMS_UID} -d /home/${USER} -s /bin/bash ${USER} && \
     echo "${USER}:${PASS}" | chpasswd && \
     usermod -aG sudo ${USER} && \
     echo "${USER} ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/${USER} && \
-    useradd -m -u 10000 -d /home/${RSYNC_USER} -s /bin/bash ${RSYNC_USER} && \
+    groupadd rsyncusers && \
+    usermod -aG rsyncusers ${USER} && \
+    useradd -m -u 10000 -g rsyncusers -d /home/${RSYNC_USER} -s /bin/bash ${RSYNC_USER} && \
     echo "${RSYNC_USER}:${PASS}" | chpasswd && \
     printf "\nPasswordAuthentication yes\nPermitRootLogin no\n" >> /etc/ssh/sshd_config
 
@@ -40,7 +41,7 @@ RUN mkdir -p "${LAKEHOUSE_DIR}/csv_templates" \
              "${LAKEHOUSE_DIR}/dml_scripts" \
              "${LAKEHOUSE_DIR}/rsync" && \
     chown -R ${USER}:${USER} ${LAKEHOUSE_DIR} && \
-    chown -R ${USER}:${RSYNC_USER} ${LAKEHOUSE_DIR}/rsync && \
+    chown -R ${USER}:rsyncusers ${LAKEHOUSE_DIR}/rsync && \
     chmod 751 ${LAKEHOUSE_DIR} && \
     chmod 771 ${LAKEHOUSE_DIR}/rsync
 
@@ -62,7 +63,7 @@ RUN mkdir -p /home/${USER}/.ssh && \
     mkdir -p /home/${RSYNC_USER}/.ssh && \
     touch /home/${RSYNC_USER}/.ssh/authorized_keys && \
     chmod 600 /home/${RSYNC_USER}/.ssh/authorized_keys && \
-    chown -R ${RSYNC_USER}:${RSYNC_USER} /home/${RSYNC_USER}/.ssh
+    chown -R ${RSYNC_USER} /home/${RSYNC_USER}/.ssh
 
 EXPOSE 22
-CMD ["bash", "-c", "sudo /usr/sbin/sshd -D & /copy_ssh_key.sh & /usr/local/bin/$RUST_BIN_NAME"]
+CMD ["bash", "-c", "sudo /usr/sbin/sshd -D & /copy_ssh_key.sh && sudo -E bash /entrypoint.sh"]
