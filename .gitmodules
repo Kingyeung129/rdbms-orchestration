@@ -4,3 +4,7 @@
 [submodule "async-innodb-reload"]
 	path = async-innodb-reload
 	url = git@github.com:SSI-Sport-Tech/async-innodb-reload.git
+[submodule "compute-user-setup-scripts"]
+	path = ./scripts/user/compute-user-setup-scripts
+	url = git@github.com:SSI-Sport-Tech/compute-user-setup-scripts.git
+	branch = supervisor
