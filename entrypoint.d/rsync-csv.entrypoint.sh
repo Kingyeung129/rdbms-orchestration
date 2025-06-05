@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # This is the entrypoint script for rsync-csv
+echo "Entry point script for rsync-csv"
 
 TEMPLATE_CONF="/etc/supervisor/supervisord.conf.tpl"
 SUPERVISOR_CONF="/etc/supervisor/supervisord.conf"
